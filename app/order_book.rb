@@ -4,12 +4,22 @@ require 'pry'
 require 'json'
 class OrderBook
   attr_accessor :bids, :asks, :market, :base
-  def load(exchange, market)
+  def initialize(exchange, market)
     @market = market
+    @exchange = exchange
     @base = market.split('-')[-1]
-    data = JSON.parse(open("./exchange_data/#{exchange}/#{market}.json").read)
+    self
+  end
+
+  def load
+    data = JSON.parse(open("./exchange_data/#{@exchange}/#{@market}.json").read)
     @bids = data["bids"]
     @asks = data["asks"]
+    self
+  end
+
+  def empty?
+    @bids.empty? && @asks.empty?
   end
 
   def buy(amount_to_buy_usd)
@@ -31,7 +41,7 @@ class OrderBook
       end
     end
     average_price = calcAveragePrice(prices, quantities)
-    {total_bought_usd: total_bought_usd, average_price: average_price}
+    {average_price: average_price, total_quantity: quantities.sum}
   end
 
   def calcAveragePrice(prices, quantities)
