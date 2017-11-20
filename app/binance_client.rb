@@ -60,7 +60,7 @@ class BinanceClient
     order_book[:bids] = order_book[:bids].sort_by { |bid| bid[:price] }.reverse
     order_book[:asks] = order_book[:asks].sort_by { |ask| ask[:price] }
 
-    File.open("./exchange_data/etherdelta/#{market}.json", "w") do |f|
+    File.open("./exchange_data/binance/#{market}.json", "w") do |f|
       f.write(order_book.to_json)
     end
   end
