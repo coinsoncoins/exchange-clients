@@ -32,7 +32,7 @@ class OrderBook
       amount_left_to_buy_usd = amount_to_buy_usd - total_bought_usd
       # buy enough so that we hit amount_to_buy_usd
       quantity_to_buy = amount_left_to_buy_usd / price_usd
-      quantity_to_buy = [quantity_to_buy, ask["quantity"]].min
+      quantity_to_buy = [quantity_to_buy, ask["quantity"].to_f].min
       total_bought_usd += price_usd * quantity_to_buy
       prices.push(price_usd)
       quantities.push(quantity_to_buy)
