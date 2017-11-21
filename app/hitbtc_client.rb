@@ -6,12 +6,12 @@ require 'pry'
 require './app/market'
 
 
-
-class BinanceClient
+class HitbtcClient
   attr_accessor :url, :exchange, :order_book_url
   def initialize()
-    @url = "https://www.binance.com/api/v1/ticker/allBookTickers"
-    @order_book_url = "https://www.binance.com/api/v1/depth?symbol=%s"
+    @client_name = 'hitbtc'
+    @url = "https://api.hitbtc.com/api/1/public/ticker"
+    @order_book_url = "https://api.hitbtc.com/api/1/public/%s/orderbook"
   end
 
   def market_symbols()
@@ -21,11 +21,11 @@ class BinanceClient
   def _market_symbols()
     response = HTTParty.get(url, { timeout: 10 })
     entries = JSON.parse(response.body)
-    #binding.pry
-    market_symbols = entries.map { |e| e["symbol"] }
-    market_symbols = market_symbols.reject { |m| m == '123456' || m == 'ETC' } # errors in binance API
+    market_symbols = entries.keys()
     market_symbols = market_symbols.map { |m| Market.parse_base(m).join('-') }
+    market_symbols = market_symbols.reject{ |m| !%w[BTC ETH].include?(m.split('-')[-1]) }
   end
+
 
   def save_order_book(market)
     url = @order_book_url % market_name_on_service(market)
@@ -34,6 +34,10 @@ class BinanceClient
     bids = entries["bids"]
     asks = entries["asks"]
     order_book = {bids: [], asks: []}
+    if !bids || !asks
+      p "no bids or asks for #{market}"
+      return
+    end
     bids.each do |bid|
       order_book[:bids].push({quantity: bid[1], price: bid[0].to_f})
     end
@@ -43,7 +47,7 @@ class BinanceClient
     order_book[:bids] = order_book[:bids].sort_by { |bid| bid[:price] }.reverse
     order_book[:asks] = order_book[:asks].sort_by { |ask| ask[:price] }
 
-    File.open("./exchange_data/binance/#{market}.json", "w") do |f|
+    File.open("./exchange_data/#{@client_name}/#{market}.json", "w") do |f|
       f.write(order_book.to_json)
     end
   end
@@ -56,11 +60,15 @@ end
 
 
 if __FILE__ == $0
-  client = BinanceClient.new
+  client = HitbtcClient.new
   markets = client.market_symbols
   markets.each do |market|
     p "saving #{market}"
-    client.save_order_book(market)
+    begin
+      client.save_order_book(market)
+    rescue Net::OpenTimeout => e
+      p "timeout on market #{market}"
+    end
   end
   client.save_order_book(markets[0])
 end
